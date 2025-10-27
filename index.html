@@ -198,13 +198,12 @@
         }
       }
 
-      // 标题：今天 -> “接下来 X 班”；明天 -> “明日前 10 班”；显示全部 -> “全部班次”
       if (state.showAll) {
         els.listTitle.textContent = '全部班次';
       } else if (upcoming[0]?.isTomorrow) {
         els.listTitle.textContent = `明日前 ${PREVIEW_LIMIT} 班`;
       } else {
-        els.listTitle.textContent = `接下来 ${upcoming.length} 班`;
+        els.listTitle.textContent = `今天剩余班次`;
       }
 
       // 渲染

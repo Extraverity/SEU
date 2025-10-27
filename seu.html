@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>九龙湖校区接驳车 · 下一班次查询</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;--card:#fff;--ink:#0f172a;--muted:#64748b;--accent:#10b981;--border:#e5e7eb;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(#f8fafc,#fff);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    .wrap{max-width:960px;margin:auto;padding:24px}
+    h1{font-size:22px;margin:0;}
+    .row{display:grid;grid-template-columns:1fr;gap:12px;margin:16px 0}
+    @media (min-width:768px){.row{grid-template-columns:2fr 1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 14px rgba(2,6,23,.05)}
+    .card-h{display:flex;align-items:center;gap:12px;padding:16px}
+    .clock{font-variant-numeric:tabular-nums;font-size:28px;font-weight:700}
+    .seg{display:flex;gap:8px}
+    .seg button{border:1px solid var(--border);background:#fff;border-radius:12px;padding:8px 12px;font-size:14px;cursor:pointer}
+    .seg button.active{background:#0f172a;color:#fff;border-color:#0f172a}
+    .next{border:1px solid #bbf7d0;background:#ecfdf5;padding:16px;border-radius:16px;color:#065f46}
+    .next .t{font-size:40px;font-weight:800;letter-spacing:0.5px;font-variant-numeric:tabular-nums}
+    .list{padding:12px}
+    .list ul{list-style:none;margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0}
+    @media (min-width:768px){.list ul{grid-template-columns:repeat(5,minmax(0,1fr))}}
+    .li{border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
+    .li .hm{font-weight:700;font-size:18px;font-variant-numeric:tabular-nums}
+    .li .hint{font-size:12px;color:var(--muted);margin-top:4px}
+    .li.next{background:#ecfdf5;border-color:#86efac}
+    .li.past{opacity:.45}
+    .bar{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:10px 12px}
+    .sw{display:flex;align-items:center;gap:6px}
+    .muted{color:var(--muted);font-size:14px}
+    footer{color:#94a3b8;text-align:center;font-size:12px;margin-top:16px}
+    .notes{background:#f8fafc;border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:14px}
+    .notes ol{margin:8px 0 0 18px;color:#334155}
+    .tag{display:inline-block;font-size:12px;color:#0369a1;background:#e0f2fe;border:1px solid #bae6fd;padding:2px 8px;border-radius:999px}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-variant-numeric:tabular-nums}
+    .title{display:flex;align-items:center;gap:10px}
+    .title svg{width:28px;height:28px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 6h8M6 10h12M6 14h12M6 18h4"/></svg>
+      <h1>九龙湖校区接驳车 · 下一班次查询</h1>
+      <span class="tag">2024-11-25 起执行</span>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <div class="card-h">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+          <div>
+            <div class="muted">当前时间</div>
+            <div id="clock" class="clock">--:--:--</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h" style="justify-content:space-between">
+          <div>
+            <div class="muted">查询模式</div>
+            <div id="mode-label" class="kbd">--</div>
+          </div>
+          <div class="seg">
+            <button id="btn-week" type="button">工作日</button>
+            <button id="btn-holi" type="button">节假日</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="next" class="next" hidden>
+      <div class="muted">下一班车</div>
+      <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+        <div id="next-time" class="t">--:--</div>
+        <div id="next-hint"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="bar">
+        <strong id="list-title">今天剩余班次</strong>
+        <label class="sw"><input type="checkbox" id="toggle-all"/> <span class="muted">显示全部</span></label>
+      </div>
+      <div class="list"><ul id="ul"></ul></div>
+    </div>
+
+    <div class="notes">
+      <strong>备注</strong>
+      <ol>
+        <li>时间为“图书馆北（起点站）”发车时间。</li>
+        <li>早高峰（7:40–9:00）东北门处约 5–8 分钟一趟，坐满即走。</li>
+        <li>接驳车按时刻表发车并循环运行，满员时请等待下一班。</li>
+        <li>将根据实际情况适时优化班次与时刻表。</li>
+      </ol>
+    </div>
+
+    <footer>数据版本：2024-11-25 · 如有更新，请在源码顶部数组中调整。</footer>
+  </div>
+
+  <script>
+    // ====== 数据（来自时刻表图片） ======
+    const WEEKDAY_TIMES = [
+      "07:00","07:10","07:20","07:30","07:40","07:45","07:50",
+      "07:55","08:00","08:05","08:10","08:15","08:20","08:25",
+      "08:30","08:35","08:40","08:45","08:50","08:55","09:00",
+      "09:10","09:20","09:30","09:40","09:50","10:00",
+      "10:30","11:00",
+      "11:30","11:40","11:50","12:00","12:10","12:20",
+      "12:30","12:40","12:50","13:00","13:10","13:20",
+      "13:30","14:00",
+      "15:00","15:10","15:20","15:30","15:40","15:50",
+      "16:00",
+      "16:50","16:55","17:00","17:05","17:10","17:20","17:30","17:40","17:50","18:00","18:10","18:20",
+      "18:30","19:00","19:30","20:00","20:30","21:00","21:30","22:00","22:30","23:00",
+    ];
+
+    const HOLIDAY_TIMES = [
+      "08:00","08:30","09:00","09:30",
+      "10:30","11:30",
+      "12:00","12:30","13:00",
+      "13:30","14:30","15:30","16:30",
+      "17:00","17:30","18:00","18:30",
+      "19:00","20:00","21:00","22:00","22:30","23:00",
+    ];
+
+    // ====== 工具函数 ======
+    const $ = (sel) => document.querySelector(sel);
+
+    function parseHMToDate(hm, base) {
+      const [h,m] = hm.split(":").map(Number);
+      const d = new Date(base);
+      d.setHours(h,m,0,0);
+      return d;
+    }
+    function pad(n){return String(n).padStart(2,'0')}
+    function fmtHM(d){return pad(d.getHours())+":"+pad(d.getMinutes())}
+    function diffMin(a,b){return Math.round((a.getTime()-b.getTime())/60000)}
+    function isWeekend(d){return d.getDay()===0 || d.getDay()===6}
+
+    // ====== 逻辑 ======
+    let mode = isWeekend(new Date()) ? 'holiday' : 'weekday';
+    const state = { showAll:false };
+
+    const els = {
+      clock: $('#clock'), modeLabel: $('#mode-label'),
+      btnW: $('#btn-week'), btnH: $('#btn-holi'),
+      listUl: $('#ul'), listTitle: $('#list-title'),
+      toggleAll: $('#toggle-all'),
+      nextBox: $('#next'), nextTime: $('#next-time'), nextHint: $('#next-hint')
+    };
+
+    function currentList(){ return mode==='weekday' ? WEEKDAY_TIMES : HOLIDAY_TIMES }
+
+    function computeUpcoming(times, now){
+      const today = now;
+      const todayItems = times.map(hm=>({hm,date:parseHMToDate(hm, today)}))
+                              .filter(x=>x.date.getTime()>=now.getTime());
+      if(todayItems.length>0) return todayItems;
+      // tomorrow's first few when no more buses
+      const tmr = new Date(now); tmr.setDate(now.getDate()+1);
+      return times.slice(0,6).map(hm=>({hm,date:parseHMToDate(hm, tmr), isTomorrow:true}));
+    }
+
+    function renderList(now){
+      const list = currentList();
+      const upcoming = computeUpcoming(list, now);
+      const toShow = state.showAll ? list.map(hm=>({hm,date:parseHMToDate(hm, now)})) : upcoming;
+
+      // next card
+      const nxt = upcoming[0];
+      if(nxt){
+        els.nextBox.hidden=false;
+        els.nextTime.textContent = nxt.hm;
+        if(nxt.isTomorrow){
+          els.nextHint.textContent = '今天已无车，将显示明日班次';
+        }else{
+          els.nextHint.innerHTML = `还有 <strong class="kbd">${diffMin(nxt.date, now)}</strong> 分钟发车`;
+        }
+      }
+
+      // list title
+      els.listTitle.textContent = state.showAll ? '全部班次' : '今天剩余班次';
+
+      // render items
+      els.listUl.innerHTML = '';
+      toShow.forEach(({hm,date,isTomorrow})=>{
+        const li = document.createElement('li');
+        li.className = 'li';
+        const isPast = !isTomorrow && date.getTime()<now.getTime();
+        const isNext = !isTomorrow && hm === (upcoming[0]?.hm||'');
+        if(isPast) li.classList.add('past');
+        if(isNext) li.classList.add('next');
+        li.innerHTML = `<div class="hm">${hm}</div>`+
+                       `<div class="hint">${isTomorrow? '明日' : (isPast? '已发车' : `还有 ${diffMin(date, now)} 分钟`)}</div>`;
+        els.listUl.appendChild(li);
+      });
+    }
+
+    function syncModeUI(){
+      els.modeLabel.textContent = mode==='weekday' ? '工作日' : '节假日（含寒暑假/双休日）';
+      els.btnW.classList.toggle('active', mode==='weekday');
+      els.btnH.classList.toggle('active', mode==='holiday');
+    }
+
+    function tick(){
+      const now = new Date();
+      els.clock.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      renderList(now);
+    }
+
+    // events
+    els.btnW.addEventListener('click',()=>{ mode='weekday'; syncModeUI(); tick(); })
+    els.btnH.addEventListener('click',()=>{ mode='holiday'; syncModeUI(); tick(); })
+    els.toggleAll.addEventListener('input', (e)=>{ state.showAll = e.target.checked; tick(); })
+
+    // init
+    syncModeUI();
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>

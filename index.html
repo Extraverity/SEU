@@ -8,9 +8,7 @@
     :root{
       --bg:#f6f7fb;--card:#fff;--ink:#0f172a;--muted:#64748b;--accent:#10b981;--border:#e5e7eb;
       --blue:#2563eb;--green:#10b981;--shadow:0 6px 20px rgba(2,6,23,.08);--space:12px;
-      /* 学校主色系 */
-      --stop:#587558;  /* GREEN */
-      --sel:#fdd000;  /* YELLOW */
+      --stop:#587558;--sel:#fdd000;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -21,9 +19,7 @@
     @media (min-width:768px){.row{grid-template-columns:2fr 1fr}}
     .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 14px rgba(2,6,23,.05)}
     .card-h{display:flex;align-items:center;gap:12px;padding:16px}
-    /* 统一卡片/提示块的上下间距 */
     .wrap > .card, .wrap > .next, .wrap > .notes{ margin-top: var(--space); }
-    /* 调整“下一班车”与上方卡片间距更紧凑 */
     .card + .next{margin-top:var(--space)}
     .clock{font-variant-numeric:tabular-nums;font-size:28px;font-weight:700}
     .seg{display:flex;gap:8px}
@@ -41,7 +37,7 @@
     .li.past{opacity:.45}
     .bar{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:10px 12px}
     .sw{display:flex;align-items:center;gap:6px}
-    .muted{color:var(--muted);font-size:14px}
+    .muted{color:#64748b;font-size:14px}
     footer{color:#94a3b8;text-align:center;font-size:12px;margin-top:var(--space)}
     .notes{background:#f8fafc;border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:var(--space)}
     .notes ol{margin:8px 0 0 18px;color:#334155}
@@ -50,7 +46,6 @@
     .title{display:flex;align-items:center;gap:10px}
     .title svg{width:28px;height:28px}
     .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:12px;color:#334155;background:#fff}
-    /* 方向组合控件（胶囊分段） */
     .combo{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;height:36px}
     .combo .seg{display:flex;align-items:center;gap:6px;padding:0 12px;font-size:13px;color:#334155}
     .combo .seg.text{font-weight:500}
@@ -65,14 +60,11 @@
     .stop-line{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;flex-wrap:nowrap}
     .stop-ctrls{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;justify-content:flex-end;flex:0 1 auto}
     .stop-meta{flex:0 1 auto}
-    /* 自适应下拉，不再固定宽度 */
     #stop-select{min-width:120px;max-width:180px;flex:0 1 auto}
     @media (max-width:640px){#stop-select{max-width:150px}}
     .stop-meta{display:flex;flex-direction:column;gap:4px}
     .stop-meta .name{font-weight:600}
     .stop-meta .sub{color:#64748b;font-size:12px}
-
-    /* 大屏保持一行，窄屏再换行 */
     @media (max-width: 760px){
       .stop-line{flex-wrap:wrap}
       .stop-ctrls{flex-wrap:wrap; flex:1 1 420px}
@@ -82,13 +74,14 @@
     /* map */
     #map{width:100%; height:380px; border-radius:12px; overflow:hidden; position:relative}
     @media (max-width:480px){ #map{height:320px} }
-    .map-topbar{position:absolute; right:10px; top:10px; z-index:400; display:flex; gap:8px}
+    .map-topbar{position:absolute; right:10px; top:10px; z-index:400; display:flex; gap:8px; align-items:center}
     .legend{background:#fff; border:1px solid var(--border); box-shadow:var(--shadow); border-radius:999px; padding:6px 10px; font-size:12px; color:#334155; display:flex; align-items:center; gap:10px}
     .legend .i{display:inline-flex;align-items:center; gap:6px}
     .lg-dot{width:10px; height:10px; border-radius:999px}
     .lg-dot.user{background:var(--blue)}
     .lg-dot.stop{background:var(--stop)}
     .lg-dot.sel{background:var(--sel)}
+    .base-select{border:1px solid var(--border); border-radius:10px; background:#fff; font-size:12px; padding:6px 8px}
 
     /* DivIcon styles */
     .stop-pin{position:relative; transform:translate(-8px, -8px)}
@@ -169,7 +162,7 @@
       </div>
     </div>
 
-    <!-- 站点地图 -->
+    <!-- 站点地图（默认不展开） -->
     <div id="map-card" class="card" style="display:none">
       <div class="card-h" style="flex-direction:column;align-items:stretch;gap:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
@@ -182,6 +175,12 @@
               <span class="i"><span class="lg-dot sel"></span>已选站点</span>
               <span class="i"><span class="lg-dot stop"></span>站点</span>
             </div>
+            <select id="base-select" class="base-select" title="底图">
+              <option value="tencent-xyz">腾讯(默认)</option>
+              <option value="tencent-tms">腾讯(TMS)</option>
+              <option value="amap">高德</option>
+              <option value="osm">OSM</option>
+            </select>
           </div>
         </div>
       </div>
@@ -242,23 +241,22 @@
       "19:00","20:00","21:00","22:00","22:30","23:00",
     ];
 
-    // ====== 站点（WGS-84，用户提供） ======
+    // ====== 站点（GCJ-02，腾讯/高德底图用） ======
     const STOPS = [
-      { id:"lib-north",  name:"图书馆北（起点）",   lat:31.891195, lng:118.813554, offset:{ weekday:0, holiday:0 } },
-      { id:"wenke-n",    name:"文科大楼北",       lat:31.892871, lng:118.811086, offset:{ weekday:1, holiday:1 } },
-      { id:"west-gate",  name:"西门",             lat:31.887815, lng:118.808657, offset:{ weekday:3, holiday:3 } },
-      { id:"juyuan",     name:"橘园",             lat:31.884845, lng:118.809146, offset:{ weekday:4, holiday:4 } },
-      { id:"admin",      name:"行政楼",           lat:31.884264, lng:118.812335, offset:{ weekday:4, holiday:4 } },
-      { id:"eee",        name:"电工电子中心",     lat:31.884456, lng:118.815989, offset:{ weekday:4, holiday:4 } },
-      { id:"meiyuan",    name:"梅园",             lat:31.886947, lng:118.819935, offset:{ weekday:4, holiday:4 } },
-      { id:"gym-sw",     name:"体育馆西南",       lat:31.888916, lng:118.820058, offset:{ weekday:3, holiday:3 } },
-      { id:"jiao8",      name:"教八站",           lat:31.890755, lng:118.819692, offset:{ weekday:3, holiday:3 } },
-      { id:"north-gate", name:"北门站",           lat:31.892836, lng:118.819058, offset:{ weekday:3, holiday:3 } },
-      { id:"ne-gate",    name:"东北门",           lat:31.895890, lng:118.824541, offset:{ weekday:6, holiday:6 } },
+      { id:"lib-north",  name:"图书馆北（起点）",   lat:31.889130, lng:118.818690, offset:{ weekday:0, holiday:0 } },
+      { id:"wenke-n",    name:"文科大楼北",       lat:31.890810, lng:118.816228, offset:{ weekday:1, holiday:1 } },
+      { id:"west-gate",  name:"西门",             lat:31.885759, lng:118.813803, offset:{ weekday:3, holiday:3 } },
+      { id:"juyuan",     name:"橘园",             lat:31.882789, lng:118.814291, offset:{ weekday:4, holiday:4 } },
+      { id:"admin",      name:"行政楼",           lat:31.882202, lng:118.817473, offset:{ weekday:4, holiday:4 } },
+      { id:"eee",        name:"电工电子中心",     lat:31.882388, lng:118.821120, offset:{ weekday:4, holiday:4 } },
+      { id:"meiyuan",    name:"梅园",             lat:31.884871, lng:118.825058, offset:{ weekday:4, holiday:4 } },
+      { id:"gym-sw",     name:"体育馆西南",       lat:31.886839, lng:118.825181, offset:{ weekday:3, holiday:3 } },
+      { id:"jiao8",      name:"教八站",           lat:31.888679, lng:118.824816, offset:{ weekday:3, holiday:3 } },
+      { id:"north-gate", name:"北门站",           lat:31.890760, lng:118.824183, offset:{ weekday:3, holiday:3 } },
+      { id:"ne-gate",    name:"东北门",           lat:31.893803, lng:118.829655, offset:{ weekday:6, holiday:6 } },
     ];
 
-    // 方向偏移(分钟)：以“图书馆北发车时刻”为基准
-    // forward: 图书馆北 → 东北门； backward: 东北门 → 图书馆北（原路返回）
+    // 方向偏移
     const DIR_OFFSETS = {
       'lib-north': { forward: 0,  backward: 27 },
       'wenke-n':   { forward: 1,  backward: 26 },
@@ -272,24 +270,51 @@
       'north-gate':{ forward: 12, backward: 15 },
       'ne-gate':   { forward: 13, backward: 13 },
     };
-
-    function getOffsetFor(stopId){
-      const d = DIR_OFFSETS[stopId];
-      return d ? (d[state.dir] ?? 0) : 0;
-    }
+    function getOffsetFor(stopId){ const d = DIR_OFFSETS[stopId]; return d ? (d[state.dir] ?? 0) : 0; }
 
     // ====== 工具 ======
     const $ = (sel) => document.querySelector(sel);
     function parseHMToDate(hm, base){ const [h,m] = hm.split(":").map(Number); const d = new Date(base); d.setHours(h,m,0,0); return d; }
     function pad(n){return String(n).padStart(2,'0')}
     function fmtHM(d){return pad(d.getHours())+":"+pad(d.getMinutes())}
-    function diffMinCeil(a,b){ const ms = a.getTime()-b.getTime(); return ms<=0?0:Math.ceil(ms/60000); }
     function isWeekend(d){return d.getDay()===0 || d.getDay()===6}
     function addMin(date, m){ return new Date(date.getTime() + m*60000) }
     function haversine(lat1,lng1,lat2,lng2){ const R=6371000,toRad=x=>x*Math.PI/180; const dLat=toRad(lat2-lat1), dLng=toRad(lng2-lng1); const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2; return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
     function formatMeters(m){ if(m==null) return '--'; return m<1000? `${Math.round(m)} m` : `${(m/1000).toFixed(2)} km`; }
 
-    // ====== 定位状态提示 ======
+    // ====== 坐标系转换：WGS-84 -> GCJ-02（中国大陆） ======
+    const PI = 3.1415926535897932384626;
+    const A  = 6378245.0;
+    const EE = 0.00669342162296594323;
+    function outOfChina(lat,lng){ return lng<72.004 || lng>137.8347 || lat<0.8293 || lat>55.8271; }
+    function transformLat(x,y){
+      let ret = -100.0 + 2.0*x + 3.0*y + 0.2*y*y + 0.1*x*y + 0.2*Math.sqrt(Math.abs(x));
+      ret += (20.0*Math.sin(6.0*x*PI) + 20.0*Math.sin(2.0*x*PI))*2.0/3.0;
+      ret += (20.0*Math.sin(y*PI) + 40.0*Math.sin(y/3.0*PI))*2.0/3.0;
+      ret += (160.0*Math.sin(y/12.0*PI) + 320*Math.sin(y*PI/30.0))*2.0/3.0;
+      return ret;
+    }
+    function transformLng(x,y){
+      let ret = 300.0 + x + 2.0*y + 0.1*x*x + 0.1*x*y + 0.1*Math.sqrt(Math.abs(x));
+      ret += (20.0*Math.sin(6.0*x*PI) + 20.0*Math.sin(2.0*x*PI))*2.0/3.0;
+      ret += (20.0*Math.sin(x*PI) + 40.0*Math.sin(x/3.0*PI))*2.0/3.0;
+      ret += (150.0*Math.sin(x/12.0*PI) + 300.0*Math.sin(x/30.0*PI))*2.0/3.0;
+      return ret;
+    }
+    function wgs84ToGcj02(lat,lng){
+      if(outOfChina(lat,lng)) return [lat,lng];
+      let dLat = transformLat(lng-105.0, lat-35.0);
+      let dLng = transformLng(lng-105.0, lat-35.0);
+      const radLat = lat / 180.0 * PI;
+      let magic = Math.sin(radLat);
+      magic = 1 - EE * magic * magic;
+      const sqrtMagic = Math.sqrt(magic);
+      dLat = (dLat * 180.0) / ((A * (1 - EE)) / (magic * sqrtMagic) * PI);
+      dLng = (dLng * 180.0) / (A / sqrtMagic * Math.cos(radLat) * PI);
+      return [lat + dLat, lng + dLng];
+    }
+
+    // ====== 定位状态提示 / 状态 ======
     const ACC_THRESH = { good: 60, poor: 100 };
     function geoHint(){
       if(state.stopMode==='manual') return '手动选择';
@@ -298,27 +323,19 @@
         case 'locating': return '定位中…';
         case 'unsupported': return '设备不支持定位，请手动选择';
         case 'fail': return '定位失败，请手动选择';
-        case 'ok':
-          return `自动 · 距离 ≈ ${formatMeters(state.nearest.dist)} · 精度 ±${acc!=null?Math.round(acc):'?'} m`;
-        case 'poor':
-          return `自动 · 精度较低（±${acc!=null?Math.round(acc):'?'} m），建议手动选择`;
-        default:
-          return state.userPos ? `自动 · 距离 ≈ ${formatMeters(state.nearest.dist)}` : '自动 · 等待定位…';
+        case 'ok':   return `自动 · 距离 ≈ ${formatMeters(state.nearest.dist)} · 精度 ±${acc!=null?Math.round(acc):'?'} m`;
+        case 'poor': return `自动 · 精度较低（±${acc!=null?Math.round(acc):'?'} m），建议手动选择`;
+        default:     return state.userPos ? `自动 · 距离 ≈ ${formatMeters(state.nearest.dist)}` : '自动 · 等待定位…';
       }
     }
 
-    // ====== 状态 ======
     let mode = (localStorage.getItem('mode')==='holiday' || localStorage.getItem('mode')==='weekday')
-      ? localStorage.getItem('mode')
-      : (isWeekend(new Date()) ? 'holiday' : 'weekday');
+      ? localStorage.getItem('mode') : (isWeekend(new Date()) ? 'holiday' : 'weekday');
+
     const state = {
-      showAll:false,
-      stopMode: 'auto', // 'auto' | 'manual'
-      manualStopId: 'lib-north',
-      nearest:{ id:'lib-north', dist: null },
-      userPos:null,
-      geo:{ phase:'idle', accuracy:null }, // idle|locating|ok|poor|fail|unsupported
-      dir:'forward',
+      showAll:false, stopMode:'auto', manualStopId:'lib-north',
+      nearest:{id:'lib-north', dist:null}, userPos:null,
+      geo:{phase:'idle', accuracy:null}, dir:'forward',
     };
     const PREVIEW_LIMIT = 10;
 
@@ -329,7 +346,10 @@
       toggleAll: $('#toggle-all'),
       nextBox: $('#next'), nextTime: $('#next-time'), nextHint: $('#next-hint'),
       stopName: $('#stop-name'), stopSub: $('#stop-sub'),
-      stopSelect: $('#stop-select'), btnRelocate: $('#btn-relocate'), btnToggleMap: $('#btn-toggle-map'), dirText: $('#dir-text'), btnDirToggle: $('#btn-dir-toggle'), mapCard: document.getElementById('map-card'),
+      stopSelect: $('#stop-select'), btnRelocate: $('#btn-relocate'), btnToggleMap: $('#btn-toggle-map'),
+      dirText: $('#dir-text'), btnDirToggle: $('#btn-dir-toggle'),
+      mapCard: document.getElementById('map-card'),
+      baseSelect: document.getElementById('base-select'),
     };
 
     function currentList(){ return mode==='weekday' ? WEEKDAY_TIMES : HOLIDAY_TIMES }
@@ -350,7 +370,6 @@
 
     function nearestStopFrom(lat,lng){ let best={stop:STOPS[0], dist:Infinity}; for(const s of STOPS){ const d=haversine(lat,lng,s.lat,s.lng); if(d<best.dist) best={stop:s,dist:d}; } return best; }
     function currentStop(){ return state.stopMode==='manual' ? (STOPS.find(s=>s.id===state.manualStopId)||STOPS[0]) : (STOPS.find(s=>s.id===state.nearest.id)||STOPS[0]); }
-
     function renderStopUI(){
       const stop=currentStop();
       els.stopName.textContent=stop.name;
@@ -388,9 +407,7 @@
       const times = currentList();
       const stop = currentStop();
 
-      // 今天所有到站（含跨昨夜发车）且尚未到站
       const todayAll = computeArrivalsForDay(now, stop, times).filter(x => x.date >= now);
-      // 明天所有到站（用于今天无车时）
       const tmrDay = nextDay(now);
       const tmrAll = computeArrivalsForDay(tmrDay, stop, times).map(x => ({...x, isTomorrow:true}));
 
@@ -410,18 +427,15 @@
 
       if(nxt){
         els.nextBox.hidden = false;
-        // 到站时间
         els.nextTime.textContent = nxt.hm;
-        const offMin = getOffsetFor(stop.id); // 发车->到站用时（固定偏移）
+        const offMin = getOffsetFor(stop.id);
         els.nextHint.innerHTML = `发车时刻：<strong class="kbd">${nxt.srcHm}</strong>，预计 <strong class="kbd">${offMin}</strong> 分钟后 <strong class="kbd">${nxt.hm}${nxt.isTomorrow?'（明日）':''}</strong> 到达 <strong>${stop.name}</strong>`;
       }else{
         els.nextBox.hidden = true;
       }
 
-      // 标题
       els.listTitle.textContent = state.showAll ? '全部班次' : '可乘坐班次';
 
-      // 列表
       els.listUl.innerHTML = '';
       const nextKey = nxt ? (nxt.hm+'|'+nxt.srcHm+'|'+(+nxt.date)) : '';
       toShow.forEach(({hm,date,isTomorrow,srcHm})=>{
@@ -437,59 +451,132 @@
     }
 
     function syncModeUI(){ els.modeLabel.textContent = mode==='weekday' ? '工作日' : '节假日'; els.btnW.classList.toggle('active', mode==='weekday'); els.btnH.classList.toggle('active', mode==='holiday'); }
-
     function syncDirUI(){ if(!els.dirText) return; els.dirText.textContent = state.dir==='forward' ? '图书馆北→东北门' : '东北门→图书馆北'; }
-
-    function tick(){ const now=new Date(); els.clock.textContent=`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`; syncDirUI(); renderStopUI(); renderList(now); }
+    function tick(){ const now=new Date(); const p=n=>String(n).padStart(2,'0'); els.clock.textContent=`${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`; syncDirUI(); renderStopUI(); renderList(now); }
 
     // ====== Leaflet 动态加载（回退） ======
     function leafletReady(){ return typeof L !== 'undefined' && L && typeof L.map === 'function'; }
     function loadLeaflet(cb){
       if(leafletReady()){ cb && cb(); return; }
-      // 优先使用 cdnjs，失败再回退到 bootcdn（国内镜像）
       function injectJs(id, url, onload, onerror){ if(document.getElementById(id)) return; const s=document.createElement('script'); s.id=id; s.src=url; s.defer=true; s.onload=onload; s.onerror=onerror; document.head.appendChild(s); }
       function injectCss(id, url){ if(document.getElementById(id)) return; const l=document.createElement('link'); l.id=id; l.rel='stylesheet'; l.href=url; document.head.appendChild(l); }
       injectCss('leaflet-css-fallback','https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css');
       injectJs('leaflet-js-fallback','https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js', ()=>cb&&cb(), ()=>{
-        // 二次回退：bootcdn（国内）
         injectCss('leaflet-css-bootcdn','https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.css');
         injectJs('leaflet-js-bootcdn','https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.js', ()=>cb&&cb(), ()=>{ if(els.btnToggleMap) els.btnToggleMap.textContent='地图不可用'; });
       });
     }
 
-    // ====== 地图：Leaflet + 自定义标记 ======
-    let map, stopLayer, userLayer, stopMarkers={}, userMarker=null, accuracyCircle=null, mapFitted=false, mapInitialized=false, mapVisible=false, baseLayer=null, tileErrCount=0, tileFallback='osm';
+    // ====== 地图：含更详细日志 / 手动切换 / 自动探测 ======
+    let map, stopLayer, userLayer, stopMarkers={}, userMarker=null, accuracyCircle=null, mapFitted=false, mapInitialized=false, mapVisible=false;
+    let baseLayer=null, baseKind='tencent-xyz', tileErrCount=0, tileLoadCount=0;
+
+    function logBase(event, detail){
+      try{ console.log(`[MapBase] ${event}`, detail ? JSON.parse(JSON.stringify(detail)) : ''); }
+      catch{ console.log(`[MapBase] ${event}`); }
+    }
+
+    function attachTileEvents(layer, name){
+      tileErrCount = 0; tileLoadCount = 0;
+      layer.on('tileloadstart', (e)=>{ logBase('tileloadstart', {name, src: e.tile && e.tile.src}); });
+      layer.on('tileload',      ()=>{ tileLoadCount++; logBase('tileload', {name, loads: tileLoadCount}); });
+      layer.on('tileerror',     (e)=>{ tileErrCount++; logBase('tileerror', {name, errors: tileErrCount, src: e.tile && e.tile.src}); maybeAutoFallback(name); });
+    }
+
+    // —— 底图工厂 —— //
+    function layerTencentXYZ(){
+      return L.tileLayer(
+        'https://rt{s}.map.gtimg.com/tile?z={z}&x={x}&y={y}&styleid=7&scene=0&version=0',
+        { subdomains:['0','1','2','3'], maxZoom:18, attribution:'© 腾讯地图' }
+      );
+    }
+    function layerTencentTMS(){
+      // 与上面 URL 相同，但开启 tms:true（反转 Y）
+      return L.tileLayer(
+        'https://rt{s}.map.gtimg.com/tile?z={z}&x={x}&y={y}&styleid=7&scene=0&version=0',
+        { subdomains:['0','1','2','3'], maxZoom:18, tms:true, attribution:'© 腾讯地图' }
+      );
+    }
+    function layerAMap(){
+      return L.tileLayer(
+        'https://webrd0{s}.is.autonavi.com/appmaptile?style=7&x={x}&y={y}&z={z}',
+        { subdomains:['1','2','3','4'], maxZoom:18, attribution:'© 高德地图' }
+      );
+    }
+    function layerOSM(){
+      return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { maxZoom:19, attribution:'© OpenStreetMap contributors' });
+    }
+    function layerBlank(){
+      const Blank = L.GridLayer.extend({
+        createTile: function(){
+          const c=document.createElement('canvas'); c.width=256; c.height=256;
+          const ctx=c.getContext('2d'); ctx.fillStyle='#f8fafc'; ctx.fillRect(0,0,256,256); return c;
+        }
+      });
+      return new Blank();
+    }
+
+    function createLayer(kind){
+      if(kind==='tencent-xyz') return layerTencentXYZ();
+      if(kind==='tencent-tms') return layerTencentTMS();
+      if(kind==='amap')        return layerAMap();
+      if(kind==='osm')         return layerOSM();
+      return layerBlank();
+    }
+    function nextFallback(kind){
+      if(kind==='tencent-xyz') return 'tencent-tms';
+      if(kind==='tencent-tms') return 'amap';
+      if(kind==='amap')        return 'osm';
+      if(kind==='osm')         return 'blank';
+      return 'blank';
+    }
+
+    function switchBase(kind, reason){
+      if(!map) return;
+      if(baseLayer){ map.removeLayer(baseLayer); baseLayer.off(); }
+      baseKind = kind; localStorage.setItem('mapBase', kind);
+      baseLayer = createLayer(kind).addTo(map);
+      attachTileEvents(baseLayer, kind);
+      logBase('layer:add', {kind, reason: reason || 'manual/default'});
+      // 自动探测：仅当腾讯-XYZ 时，如果短时间加载很少且错误较多，切腾讯-TMS
+      if(kind==='tencent-xyz'){
+        setTimeout(()=>{ 
+          if(baseKind!=='tencent-xyz') return;
+          if(tileLoadCount===0 || (tileErrCount>=2 && tileLoadCount<2)){
+            logBase('auto-detect: xyz->tms', {loads:tileLoadCount, errors:tileErrCount});
+            switchBase('tencent-tms', 'auto-detect');
+          }
+        }, 2500);
+      }
+    }
+
+    function maybeAutoFallback(name){
+      // 通用回退：当前底图连续错误达到 3 次，进入下一级
+      if(tileErrCount>=3){
+        const next = nextFallback(baseKind);
+        if(next && next!==baseKind){
+          logBase('auto-fallback', {from: baseKind, to: next, errors: tileErrCount});
+          switchBase(next, 'tileerror>=3');
+        }
+      }
+    }
 
     function initMap(){
       if(!leafletReady()) return;
+      logBase('initMap: start');
       map = L.map('map', { zoomControl:true });
-
-      // —— 底图加载：OSM -> (失败) 高德 -> (失败) 空白 ——
-      function makeOSMLayer(){
-        return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' });
-      }
-      function makeAMapLayer(){
-        // 高德底图（可能存在与WGS-84少量偏移）
-        return L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?style=7&x={x}&y={y}&z={z}', {
-          subdomains: ['1','2','3','4'], maxZoom: 18, attribution: '© 高德地图'
-        });
-      }
-      function makeBlankLayer(){
-        const Blank = L.GridLayer.extend({ createTile: function(){ const c=document.createElement('canvas'); c.width=256; c.height=256; const ctx=c.getContext('2d'); ctx.fillStyle='#f8fafc'; ctx.fillRect(0,0,256,256); return c; } });
-        return new Blank();
-      }
-      function switchToAMap(){ if(baseLayer){ map.removeLayer(baseLayer); } baseLayer = makeAMapLayer().addTo(map); tileFallback='amap'; baseLayer.on('tileerror', ()=>{ if(tileFallback==='amap'){ switchToBlank(); }}); }
-      function switchToBlank(){ if(baseLayer){ map.removeLayer(baseLayer); } baseLayer = makeBlankLayer().addTo(map); tileFallback='blank'; }
-
-      baseLayer = makeOSMLayer().addTo(map);
-      tileErrCount = 0; tileFallback='osm';
-      baseLayer.on('tileerror', ()=>{ tileErrCount++; if(tileErrCount>=6 && tileFallback==='osm'){ switchToAMap(); } });
-      setTimeout(()=>{ if(tileErrCount>=4 && tileFallback==='osm'){ switchToAMap(); } }, 2500);
 
       stopLayer = L.layerGroup().addTo(map);
       userLayer = L.layerGroup().addTo(map);
+
+      // 默认底图：从本地存储恢复，否则腾讯(默认/XYZ)
+      const saved = localStorage.getItem('mapBase') || 'tencent-xyz';
+      switchBase(saved, 'init');
+
       buildStopMarkers();
       fitMapToAll();
+      logBase('initMap: done');
     }
 
     function stopDivIcon(name, selected){
@@ -513,7 +600,6 @@
         stopMarkers[s.id]=marker;
       }
     }
-
     function updateStopMarkerIcons(){ if(!leafletReady()) return; for(const s of STOPS){ const m=stopMarkers[s.id]; if(!m) continue; const selected = (currentStop().id===s.id); m.setIcon(stopDivIcon(s.name, selected)); } }
     function highlightStopOnMap(){ updateStopMarkerIcons(); }
 
@@ -538,16 +624,21 @@
     // ====== 显隐地图 ======
     function setMapVisible(v){
       mapVisible = v;
+
+      // ★ 修复：无论展开/收起都持久化保存状态
+      localStorage.setItem('mapVisible', v ? '1' : '0');
+
       if(els.mapCard){ els.mapCard.style.display = v ? '' : 'none'; }
       if(els.btnToggleMap){ els.btnToggleMap.textContent = v ? '收起地图' : '展开地图'; }
-      if(!v) return;
+
+      if(!v) return; // 收起时不做后续地图初始化/刷新
+
       if(!leafletReady()){
         loadLeaflet(()=>{ if(!mapInitialized){ initMap(); mapInitialized = true; } setTimeout(()=>{ if(map){ map.invalidateSize(); if(!mapFitted){ fitMapToAll(); mapFitted=true; } updateUserMarker(); updateStopMarkerIcons(); } },0); });
         return;
       }
       if(!mapInitialized){ initMap(); mapInitialized = true; }
       setTimeout(()=>{ if(map){ map.invalidateSize(); if(!mapFitted){ fitMapToAll(); mapFitted=true; } updateUserMarker(); updateStopMarkerIcons(); } },0);
-      localStorage.setItem('mapVisible', v ? '1' : '0');
     }
 
     // ====== 定位 ======
@@ -562,14 +653,11 @@
       navigator.geolocation.getCurrentPosition(
         (pos)=>{
           const {latitude, longitude, accuracy}=pos.coords;
-          state.userPos={lat:latitude, lng:longitude, accuracy};
-          const res=nearestStopFrom(latitude, longitude);
+          const [gLat, gLng] = wgs84ToGcj02(latitude, longitude);
+          state.userPos={lat:gLat, lng:gLng, accuracy};
+          const res=nearestStopFrom(gLat, gLng);
           state.nearest={id:res.stop.id, dist:res.dist};
-          if(isFinite(accuracy)){
-            state.geo={phase: (accuracy>ACC_THRESH.poor?'poor':'ok'), accuracy};
-          }else{
-            state.geo={phase:'ok', accuracy:null};
-          }
+          state.geo={phase: (isFinite(accuracy) && accuracy>ACC_THRESH.poor)?'poor':'ok', accuracy: isFinite(accuracy)?accuracy:null};
           updateUserMarker(); renderStopUI(); tick();
         },
         (err)=>{
@@ -585,15 +673,9 @@
     els.btnW.addEventListener('click',()=>{ mode='weekday'; localStorage.setItem('mode','weekday'); syncModeUI(); tick(); })
     els.btnH.addEventListener('click',()=>{ mode='holiday'; localStorage.setItem('mode','holiday'); syncModeUI(); tick(); })
     els.toggleAll.addEventListener('input', (e)=>{ state.showAll=e.target.checked; tick(); })
-
     if(els.btnDirToggle){
-      els.btnDirToggle.addEventListener('click', ()=>{
-        state.dir = (state.dir==='forward') ? 'backward' : 'forward';
-        syncDirUI();
-        tick();
-      });
+      els.btnDirToggle.addEventListener('click', ()=>{ state.dir = (state.dir==='forward') ? 'backward' : 'forward'; syncDirUI(); tick(); });
     }
-
     function initStopSelect(){
       const optAuto=document.createElement('option'); optAuto.value='auto'; optAuto.textContent='自动（最近）'; els.stopSelect.appendChild(optAuto);
       for(const s of STOPS){ const o=document.createElement('option'); o.value=s.id; o.textContent=s.name; els.stopSelect.appendChild(o); }
@@ -614,6 +696,10 @@
       locateOnce();
     });
     if(els.btnToggleMap){ els.btnToggleMap.addEventListener('click', ()=> setMapVisible(!mapVisible)); }
+    if(els.baseSelect){
+      els.baseSelect.value = localStorage.getItem('mapBase') || 'tencent-xyz';
+      els.baseSelect.addEventListener('change', ()=>{ if(!map) return; switchBase(els.baseSelect.value, 'manual-select'); });
+    }
 
     // ====== 简易测试（控制台） ======
     (function selfTests(){
@@ -621,14 +707,13 @@
       const list = ["07:50","08:00","08:10"];
       const upcoming = computeUpcoming(list, base, 3);
       console.assert(upcoming[0].hm === '08:00', 'computeUpcoming should pick 08:00 at 08:00');
-      const stop = {offset:{weekday:3, holiday:3}}; // 3分钟偏移
+      const stop = {offset:{weekday:3, holiday:3}};
       const applied = applyStopOffset(upcoming, stop, base);
       console.assert(applied[0].hm === '08:03', 'applyStopOffset should add 3 minutes');
       const late = new Date('2025-01-01T23:30:00');
       const lateUp = computeUpcoming(["23:00"], late, 1);
       console.assert(lateUp[0].isTomorrow === true, 'after last bus, should mark tomorrow');
 
-      // geoHint tests (100m 阈值)
       const backup = JSON.parse(JSON.stringify(state));
       state.stopMode='auto'; state.nearest={id:'lib-north', dist:120};
       state.geo={phase:'ok', accuracy:25};
@@ -648,7 +733,6 @@
       state.stopMode='manual';
       console.assert(geoHint()==='手动选择', 'geoHint manual');
 
-      // 点击“重新定位”应切回自动模式 + 失败时回退到起点
       const backup2 = JSON.parse(JSON.stringify(state));
       state.stopMode='manual'; state.manualStopId='wenke-n';
       if(state.stopMode!=='auto'){ state.stopMode='auto'; }
@@ -656,7 +740,6 @@
       console.assert(currentStop().id==='lib-north', 'relocate=>auto & fail => fallback lib-north');
       Object.assign(state, backup2);
 
-      // 方向偏移 tests
       state.dir='forward';
       let arr = applyStopOffset([{hm:'08:00', date:new Date('2025-01-01T08:00:00')}], STOPS.find(s=>s.id==='ne-gate'), new Date('2025-01-01T08:00:00'));
       console.assert(arr[0].hm==='08:13','forward: ne-gate at 13');
@@ -666,11 +749,10 @@
       arr = applyStopOffset([{hm:'08:00', date:new Date('2025-01-01T08:00:00')}], STOPS.find(s=>s.id==='north-gate'), new Date('2025-01-01T08:00:00'));
       console.assert(arr[0].hm==='08:15','backward: north-gate at 15');
 
-      // Dir UI sync tests
       state.dir='forward'; syncDirUI(); console.assert(els.dirText.textContent.includes('图书馆北→东北门'),'dir ui forward text');
       state.dir='backward'; syncDirUI(); console.assert(els.dirText.textContent.includes('东北门→图书馆北'),'dir ui backward text');
 
-      // extra tests
+      function formatMeters(m){ if(m==null) return '--'; return m<1000? `${Math.round(m)} m` : `${(m/1000).toFixed(2)} km`; }
       console.assert(formatMeters(999)==='999 m', 'formatMeters under 1000m');
       console.assert(formatMeters(1200)==='1.20 km', 'formatMeters over 1000m');
       const here = STOPS.find(s=>s.id==='juyuan');
@@ -678,14 +760,13 @@
       console.assert(near.stop.id==='juyuan', 'nearestStopFrom should return itself for exact coords');
 
       Object.assign(state, backup);
-      // 新增：到站序算法自测
       state.dir='forward';
       let stopF = STOPS.find(s=>s.id==='juyuan');
       let nowA = new Date('2025-01-01T17:28:00');
       let timesA = ['17:25','17:30'];
       let upA = computeNextArrivals(nowA, stopF, timesA, 1);
       console.assert(upA[0].srcHm==='17:25' && upA[0].hm==='17:29', 'arrival-driven: pick 17:25 -> 17:29');
-      // 跨日：昨晚 23:50 发车，回程 27 分钟，到站 00:17
+
       state.dir='backward';
       let stopB = STOPS.find(s=>s.id==='lib-north');
       let nowB = new Date('2025-01-02T00:05:00');
@@ -693,7 +774,6 @@
       let upB = computeNextArrivals(nowB, stopB, timesB, 1);
       console.assert(upB[0].srcHm==='23:50' && upB[0].hm==='00:17', 'arrival-driven: cross day 23:50 -> 00:17');
 
-      // 新增：展示策略测试（今天优先）
       const today = new Date('2025-01-01T20:59:00');
       state.dir='forward';
       let arrToday = computeArrivalsForDay(today, STOPS.find(s=>s.id==='ne-gate'), WEEKDAY_TIMES).filter(x=>x.date>=today);
@@ -709,8 +789,11 @@
     (function init(){
       syncModeUI();
       initStopSelect();
-      const saved = localStorage.getItem('mapVisible')==='1';
-      setMapVisible(!!saved);
+
+      const saved = localStorage.getItem('mapVisible');
+      const visible = saved === null ? false : (saved === '1');
+      setMapVisible(visible);
+
       if(state.stopMode==='auto'){ locateOnce(); }
       tick();
       setInterval(tick, 1000);

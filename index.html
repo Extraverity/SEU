@@ -62,10 +62,22 @@
     .btn{border:1px solid var(--border);background:#fff;border-radius:12px;padding:8px 12px;font-size:14px;cursor:pointer}
     .btn.primary{background:#0f172a;color:#fff;border-color:#0f172a}
     select{border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#fff}
-    .stop-line{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+    .stop-line{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;flex-wrap:nowrap}
+    .stop-ctrls{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;justify-content:flex-end;flex:0 1 auto}
+    .stop-meta{flex:0 1 auto}
+    /* 自适应下拉，不再固定宽度 */
+    #stop-select{min-width:120px;max-width:180px;flex:0 1 auto}
+    @media (max-width:640px){#stop-select{max-width:150px}}
     .stop-meta{display:flex;flex-direction:column;gap:4px}
     .stop-meta .name{font-weight:600}
     .stop-meta .sub{color:#64748b;font-size:12px}
+
+    /* 大屏保持一行，窄屏再换行 */
+    @media (max-width: 760px){
+      .stop-line{flex-wrap:wrap}
+      .stop-ctrls{flex-wrap:wrap; flex:1 1 420px}
+      .stop-meta{flex:1 1 220px}
+    }
 
     /* map */
     #map{width:100%; height:380px; border-radius:12px; overflow:hidden; position:relative}
@@ -139,7 +151,7 @@
             <div class="name" id="stop-name">--</div>
             <div class="sub" id="stop-sub">定位中…</div>
           </div>
-          <div style="display:flex;align-items:center;gap:8px">
+          <div class="stop-ctrls">
             <div class="combo" id="dir-combo">
               <span id="dir-text" class="seg text">图书馆北→东北门</span>
               <button id="btn-dir-toggle" class="seg btn-mini" type="button" aria-label="切换方向">
@@ -434,22 +446,46 @@
     function leafletReady(){ return typeof L !== 'undefined' && L && typeof L.map === 'function'; }
     function loadLeaflet(cb){
       if(leafletReady()){ cb && cb(); return; }
-      // 注入回退CDN（cdnjs）
-      if(!document.getElementById('leaflet-css-fallback')){
-        const link=document.createElement('link'); link.id='leaflet-css-fallback'; link.rel='stylesheet'; link.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css'; document.head.appendChild(link);
-      }
-      if(!document.getElementById('leaflet-js-fallback')){
-        const sc=document.createElement('script'); sc.id='leaflet-js-fallback'; sc.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js'; sc.defer=true; sc.onload=()=>cb&&cb(); sc.onerror=()=>{ if(els.btnToggleMap) els.btnToggleMap.textContent='地图不可用'; }; document.head.appendChild(sc);
-      }
+      // 优先使用 cdnjs，失败再回退到 bootcdn（国内镜像）
+      function injectJs(id, url, onload, onerror){ if(document.getElementById(id)) return; const s=document.createElement('script'); s.id=id; s.src=url; s.defer=true; s.onload=onload; s.onerror=onerror; document.head.appendChild(s); }
+      function injectCss(id, url){ if(document.getElementById(id)) return; const l=document.createElement('link'); l.id=id; l.rel='stylesheet'; l.href=url; document.head.appendChild(l); }
+      injectCss('leaflet-css-fallback','https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css');
+      injectJs('leaflet-js-fallback','https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js', ()=>cb&&cb(), ()=>{
+        // 二次回退：bootcdn（国内）
+        injectCss('leaflet-css-bootcdn','https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.css');
+        injectJs('leaflet-js-bootcdn','https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.js', ()=>cb&&cb(), ()=>{ if(els.btnToggleMap) els.btnToggleMap.textContent='地图不可用'; });
+      });
     }
 
     // ====== 地图：Leaflet + 自定义标记 ======
-    let map, stopLayer, userLayer, stopMarkers={}, userMarker=null, accuracyCircle=null, mapFitted=false, mapInitialized=false, mapVisible=false;
+    let map, stopLayer, userLayer, stopMarkers={}, userMarker=null, accuracyCircle=null, mapFitted=false, mapInitialized=false, mapVisible=false, baseLayer=null, tileErrCount=0, tileFallback='osm';
 
     function initMap(){
       if(!leafletReady()) return;
       map = L.map('map', { zoomControl:true });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+
+      // —— 底图加载：OSM -> (失败) 高德 -> (失败) 空白 ——
+      function makeOSMLayer(){
+        return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' });
+      }
+      function makeAMapLayer(){
+        // 高德底图（可能存在与WGS-84少量偏移）
+        return L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?style=7&x={x}&y={y}&z={z}', {
+          subdomains: ['1','2','3','4'], maxZoom: 18, attribution: '© 高德地图'
+        });
+      }
+      function makeBlankLayer(){
+        const Blank = L.GridLayer.extend({ createTile: function(){ const c=document.createElement('canvas'); c.width=256; c.height=256; const ctx=c.getContext('2d'); ctx.fillStyle='#f8fafc'; ctx.fillRect(0,0,256,256); return c; } });
+        return new Blank();
+      }
+      function switchToAMap(){ if(baseLayer){ map.removeLayer(baseLayer); } baseLayer = makeAMapLayer().addTo(map); tileFallback='amap'; baseLayer.on('tileerror', ()=>{ if(tileFallback==='amap'){ switchToBlank(); }}); }
+      function switchToBlank(){ if(baseLayer){ map.removeLayer(baseLayer); } baseLayer = makeBlankLayer().addTo(map); tileFallback='blank'; }
+
+      baseLayer = makeOSMLayer().addTo(map);
+      tileErrCount = 0; tileFallback='osm';
+      baseLayer.on('tileerror', ()=>{ tileErrCount++; if(tileErrCount>=6 && tileFallback==='osm'){ switchToAMap(); } });
+      setTimeout(()=>{ if(tileErrCount>=4 && tileFallback==='osm'){ switchToAMap(); } }, 2500);
+
       stopLayer = L.layerGroup().addTo(map);
       userLayer = L.layerGroup().addTo(map);
       buildStopMarkers();

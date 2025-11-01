@@ -3,25 +3,33 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>九龙湖校区接驳车 · 下一班次查询</title>
+  <title>九龙湖校区接驳车查询</title>
   <style>
     :root{
       --bg:#f6f7fb;--card:#fff;--ink:#0f172a;--muted:#64748b;--accent:#10b981;--border:#e5e7eb;
+      --blue:#2563eb;--green:#10b981;--shadow:0 6px 20px rgba(2,6,23,.08);--space:12px;
+      /* 学校主色系 */
+      --stop:#587558;  /* GREEN */
+      --sel:#fdd000;  /* YELLOW */
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0;background:linear-gradient(#f8fafc,#fff);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
     .wrap{max-width:960px;margin:auto;padding:24px}
     h1{font-size:22px;margin:0;}
-    .row{display:grid;grid-template-columns:1fr;gap:12px;margin:16px 0}
+    .row{display:grid;grid-template-columns:1fr;gap:12px;margin:var(--space) 0}
     @media (min-width:768px){.row{grid-template-columns:2fr 1fr}}
     .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 14px rgba(2,6,23,.05)}
     .card-h{display:flex;align-items:center;gap:12px;padding:16px}
+    /* 统一卡片/提示块的上下间距 */
+    .wrap > .card, .wrap > .next, .wrap > .notes{ margin-top: var(--space); }
+    /* 调整“下一班车”与上方卡片间距更紧凑 */
+    .card + .next{margin-top:var(--space)}
     .clock{font-variant-numeric:tabular-nums;font-size:28px;font-weight:700}
     .seg{display:flex;gap:8px}
     .seg button{border:1px solid var(--border);background:#fff;border-radius:12px;padding:8px 12px;font-size:14px;cursor:pointer}
     .seg button.active{background:#0f172a;color:#fff;border-color:#0f172a}
-    .next{border:1px solid #bbf7d0;background:#ecfdf5;padding:16px;border-radius:16px;color:#065f46}
+    .next{border:1px solid #bbf7d0;background:#ecfdf5;padding:10px 16px 14px;border-radius:16px;color:#065f46}
     .next .t{font-size:40px;font-weight:800;letter-spacing:0.5px;font-variant-numeric:tabular-nums}
     .list{padding:12px}
     .list ul{list-style:none;margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0}
@@ -34,23 +42,70 @@
     .bar{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:10px 12px}
     .sw{display:flex;align-items:center;gap:6px}
     .muted{color:var(--muted);font-size:14px}
-    footer{color:#94a3b8;text-align:center;font-size:12px;margin-top:16px}
-    .notes{background:#f8fafc;border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:14px}
+    footer{color:#94a3b8;text-align:center;font-size:12px;margin-top:var(--space)}
+    .notes{background:#f8fafc;border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:var(--space)}
     .notes ol{margin:8px 0 0 18px;color:#334155}
     .tag{display:inline-block;font-size:12px;color:#0369a1;background:#e0f2fe;border:1px solid #bae6fd;padding:2px 8px;border-radius:999px}
-    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-variant-numeric:tabular-nums}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-variant-numeric:tabular-nums}
     .title{display:flex;align-items:center;gap:10px}
     .title svg{width:28px;height:28px}
+    .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:12px;color:#334155;background:#fff}
+    /* 方向组合控件（胶囊分段） */
+    .combo{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;height:36px}
+    .combo .seg{display:flex;align-items:center;gap:6px;padding:0 12px;font-size:13px;color:#334155}
+    .combo .seg.text{font-weight:500}
+    .combo .seg.btn-mini{border:0;border-left:1px solid var(--border);background:#fff;height:100%;cursor:pointer}
+    .combo .seg.btn-mini:hover{background:#f8fafc}
+    .combo .seg.btn-mini:active{background:#eef2f7}
+    .combo .swap-icon{display:inline-flex}
+    .combo .swap-icon svg{width:16px;height:16px}
+    .btn{border:1px solid var(--border);background:#fff;border-radius:12px;padding:8px 12px;font-size:14px;cursor:pointer}
+    .btn.primary{background:#0f172a;color:#fff;border-color:#0f172a}
+    select{border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#fff}
+    .stop-line{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+    .stop-meta{display:flex;flex-direction:column;gap:4px}
+    .stop-meta .name{font-weight:600}
+    .stop-meta .sub{color:#64748b;font-size:12px}
+
+    /* map */
+    #map{width:100%; height:380px; border-radius:12px; overflow:hidden; position:relative}
+    @media (max-width:480px){ #map{height:320px} }
+    .map-topbar{position:absolute; right:10px; top:10px; z-index:400; display:flex; gap:8px}
+    .legend{background:#fff; border:1px solid var(--border); box-shadow:var(--shadow); border-radius:999px; padding:6px 10px; font-size:12px; color:#334155; display:flex; align-items:center; gap:10px}
+    .legend .i{display:inline-flex;align-items:center; gap:6px}
+    .lg-dot{width:10px; height:10px; border-radius:999px}
+    .lg-dot.user{background:var(--blue)}
+    .lg-dot.stop{background:var(--stop)}
+    .lg-dot.sel{background:var(--sel)}
+
+    /* DivIcon styles */
+    .stop-pin{position:relative; transform:translate(-8px, -8px)}
+    .stop-pin .dot{width:8px;height:8px;border-radius:999px;background:var(--stop);display:block;box-shadow:0 0 0 2px #fff, 0 0 0 4px rgba(2,6,23,.1)}
+    .stop-pin .label{position:absolute; left:10px; top:-4px; background:#fff; border:1px solid var(--border); padding:3px 8px; border-radius:8px; font-size:12px; color:#0f172a; box-shadow:var(--shadow); white-space:nowrap}
+    .stop-pin .label .b{font-weight:600}
+    .stop-pin .label .badge{margin-left:6px; border:1px solid var(--sel); color:#6a5600; background:#fff4bf; border-radius:999px; padding:0 6px; font-size:11px}
+    .stop-pin.is-selected .dot{background:var(--sel)}
+    .stop-pin.is-selected .label{border-color:var(--sel)}
+
+    .me-pin{position:relative; transform:translate(-10px, -10px)}
+    .me-pin .pulse{position:absolute; width:16px; height:16px; border-radius:999px; background:var(--blue); box-shadow:0 0 0 2px #fff; animation:pulse 2s infinite}
+    .me-pin .label{position:absolute; left:20px; top:-2px; background:#fff; border:1px solid var(--border); padding:3px 8px; border-radius:8px; font-size:12px; color:#0f172a; box-shadow:var(--shadow); white-space:nowrap}
+    @keyframes pulse{ 0%{transform:scale(0.9); opacity:0.9} 70%{transform:scale(1.2); opacity:0.2} 100%{transform:scale(0.9); opacity:0.0} }
   </style>
+
+  <!-- Leaflet（CDN + 回退） -->
+  <link id="leaflet-css-head" rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
+  <script id="leaflet-js-head" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous" defer></script>
 </head>
 <body>
   <div class="wrap">
     <div class="title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 6h8M6 10h12M6 14h12M6 18h4"/></svg>
-      <h1>九龙湖校区接驳车 · 下一班次查询</h1>
+      <h1>九龙湖校区接驳车查询</h1>
       <span class="tag">2024-11-25 起执行</span>
     </div>
 
+    <!-- 当前时间 & 模式 -->
     <div class="row">
       <div class="card">
         <div class="card-h">
@@ -75,17 +130,64 @@
       </div>
     </div>
 
+    <!-- 站点选择 / 定位 -->
+    <div class="card">
+      <div class="card-h">
+        <div class="stop-line">
+          <div class="stop-meta">
+            <div class="muted">当前站点</div>
+            <div class="name" id="stop-name">--</div>
+            <div class="sub" id="stop-sub">定位中…</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="combo" id="dir-combo">
+              <span id="dir-text" class="seg text">图书馆北→东北门</span>
+              <button id="btn-dir-toggle" class="seg btn-mini" type="button" aria-label="切换方向">
+                <span class="swap-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 8 16 13"/><line x1="21" y1="8" x2="3" y2="8"/><polyline points="8 21 3 16 8 11"/><line x1="21" y1="16" x2="3" y2="16"/></svg>
+                </span>
+                <span style="margin-left:6px">切换方向</span>
+              </button>
+            </div>
+            <select id="stop-select" title="选择站点"></select>
+            <button id="btn-relocate" class="btn" type="button">重新定位</button>
+            <button id="btn-toggle-map" class="btn" type="button">展开地图</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 站点地图 -->
+    <div id="map-card" class="card" style="display:none">
+      <div class="card-h" style="flex-direction:column;align-items:stretch;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
+          <div class="muted">站点地图</div>
+        </div>
+        <div id="map">
+          <div class="map-topbar">
+            <div class="legend">
+              <span class="i"><span class="lg-dot user"></span>当前位置</span>
+              <span class="i"><span class="lg-dot sel"></span>已选站点</span>
+              <span class="i"><span class="lg-dot stop"></span>站点</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 下一班车 -->
     <div id="next" class="next" hidden>
-      <div class="muted">下一班车</div>
+      <div class="muted">下一班车到站时间</div>
       <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
         <div id="next-time" class="t">--:--</div>
         <div id="next-hint"></div>
       </div>
     </div>
 
+    <!-- 列表 -->
     <div class="card" style="margin-top:12px">
       <div class="bar">
-        <strong id="list-title">接下来 10 班</strong>
+        <strong id="list-title">可乘坐班次</strong>
         <label class="sw"><input type="checkbox" id="toggle-all"/> <span class="muted">显示全部</span></label>
       </div>
       <div class="list"><ul id="ul"></ul></div>
@@ -94,10 +196,9 @@
     <div class="notes">
       <strong>备注</strong>
       <ol>
-        <li>时间为“图书馆北（起点站）”发车时间。</li>
+        <li>本页显示为“<strong>到所选站点的预估到达时间</strong>”，仅供参考。</li>
+        <li>以“图书馆北（起点站）”为发车基准，按固定偏移估算到站；高峰期存在 ±2–5 分钟误差。</li>
         <li>早高峰（7:40–9:00）东北门处约 5–8 分钟一趟，坐满即走。</li>
-        <li>接驳车按时刻表发车并循环运行，满员时请等待下一班。</li>
-        <li>将根据实际情况适时优化班次与时刻表。</li>
       </ol>
     </div>
 
@@ -105,7 +206,7 @@
   </div>
 
   <script>
-    // ====== 数据 ======
+    // ====== 时刻表 ======
     const WEEKDAY_TIMES = [
       "07:00","07:10","07:20","07:30","07:40","07:45","07:50",
       "07:55","08:00","08:05","08:10","08:15","08:20","08:25",
@@ -120,7 +221,6 @@
       "16:50","16:55","17:00","17:05","17:10","17:20","17:30","17:40","17:50","18:00","18:10","18:20",
       "18:30","19:00","19:30","20:00","20:30","21:00","21:30","22:00","22:30","23:00",
     ];
-
     const HOLIDAY_TIMES = [
       "08:00","08:30","09:00","09:30",
       "10:30","11:30",
@@ -130,118 +230,455 @@
       "19:00","20:00","21:00","22:00","22:30","23:00",
     ];
 
-    // ====== 工具函数 ======
-    const $ = (sel) => document.querySelector(sel);
-    function parseHMToDate(hm, base) {
-      const [h,m] = hm.split(":").map(Number);
-      const d = new Date(base);
-      d.setHours(h,m,0,0);
-      return d;
+    // ====== 站点（WGS-84，用户提供） ======
+    const STOPS = [
+      { id:"lib-north",  name:"图书馆北（起点）",   lat:31.891195, lng:118.813554, offset:{ weekday:0, holiday:0 } },
+      { id:"wenke-n",    name:"文科大楼北",       lat:31.892871, lng:118.811086, offset:{ weekday:1, holiday:1 } },
+      { id:"west-gate",  name:"西门",             lat:31.887815, lng:118.808657, offset:{ weekday:3, holiday:3 } },
+      { id:"juyuan",     name:"橘园",             lat:31.884845, lng:118.809146, offset:{ weekday:4, holiday:4 } },
+      { id:"admin",      name:"行政楼",           lat:31.884264, lng:118.812335, offset:{ weekday:4, holiday:4 } },
+      { id:"eee",        name:"电工电子中心",     lat:31.884456, lng:118.815989, offset:{ weekday:4, holiday:4 } },
+      { id:"meiyuan",    name:"梅园",             lat:31.886947, lng:118.819935, offset:{ weekday:4, holiday:4 } },
+      { id:"gym-sw",     name:"体育馆西南",       lat:31.888916, lng:118.820058, offset:{ weekday:3, holiday:3 } },
+      { id:"jiao8",      name:"教八站",           lat:31.890755, lng:118.819692, offset:{ weekday:3, holiday:3 } },
+      { id:"north-gate", name:"北门站",           lat:31.892836, lng:118.819058, offset:{ weekday:3, holiday:3 } },
+      { id:"ne-gate",    name:"东北门",           lat:31.895890, lng:118.824541, offset:{ weekday:6, holiday:6 } },
+    ];
+
+    // 方向偏移(分钟)：以“图书馆北发车时刻”为基准
+    // forward: 图书馆北 → 东北门； backward: 东北门 → 图书馆北（原路返回）
+    const DIR_OFFSETS = {
+      'lib-north': { forward: 0,  backward: 27 },
+      'wenke-n':   { forward: 1,  backward: 26 },
+      'west-gate': { forward: 2,  backward: 23 },
+      'juyuan':    { forward: 4,  backward: 22 },
+      'admin':     { forward: 6,  backward: 21 },
+      'eee':       { forward: 7,  backward: 20 },
+      'meiyuan':   { forward: 9,  backward: 18 },
+      'gym-sw':    { forward: 10, backward: 17 },
+      'jiao8':     { forward: 11, backward: 16 },
+      'north-gate':{ forward: 12, backward: 15 },
+      'ne-gate':   { forward: 13, backward: 13 },
+    };
+
+    function getOffsetFor(stopId){
+      const d = DIR_OFFSETS[stopId];
+      return d ? (d[state.dir] ?? 0) : 0;
     }
+
+    // ====== 工具 ======
+    const $ = (sel) => document.querySelector(sel);
+    function parseHMToDate(hm, base){ const [h,m] = hm.split(":").map(Number); const d = new Date(base); d.setHours(h,m,0,0); return d; }
     function pad(n){return String(n).padStart(2,'0')}
     function fmtHM(d){return pad(d.getHours())+":"+pad(d.getMinutes())}
-    function diffMin(a,b){return Math.round((a.getTime()-b.getTime())/60000)}
+    function diffMinCeil(a,b){ const ms = a.getTime()-b.getTime(); return ms<=0?0:Math.ceil(ms/60000); }
     function isWeekend(d){return d.getDay()===0 || d.getDay()===6}
+    function addMin(date, m){ return new Date(date.getTime() + m*60000) }
+    function haversine(lat1,lng1,lat2,lng2){ const R=6371000,toRad=x=>x*Math.PI/180; const dLat=toRad(lat2-lat1), dLng=toRad(lng2-lng1); const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2; return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
+    function formatMeters(m){ if(m==null) return '--'; return m<1000? `${Math.round(m)} m` : `${(m/1000).toFixed(2)} km`; }
 
-    // ====== 逻辑 ======
-    let mode = isWeekend(new Date()) ? 'holiday' : 'weekday';
-    const state = { showAll:false };
-    const PREVIEW_LIMIT = 10; // 默认展示数
+    // ====== 定位状态提示 ======
+    const ACC_THRESH = { good: 60, poor: 100 };
+    function geoHint(){
+      if(state.stopMode==='manual') return '手动选择';
+      const acc = state.geo.accuracy;
+      switch(state.geo.phase){
+        case 'locating': return '定位中…';
+        case 'unsupported': return '设备不支持定位，请手动选择';
+        case 'fail': return '定位失败，请手动选择';
+        case 'ok':
+          return `自动 · 距离 ≈ ${formatMeters(state.nearest.dist)} · 精度 ±${acc!=null?Math.round(acc):'?'} m`;
+        case 'poor':
+          return `自动 · 精度较低（±${acc!=null?Math.round(acc):'?'} m），建议手动选择`;
+        default:
+          return state.userPos ? `自动 · 距离 ≈ ${formatMeters(state.nearest.dist)}` : '自动 · 等待定位…';
+      }
+    }
+
+    // ====== 状态 ======
+    let mode = (localStorage.getItem('mode')==='holiday' || localStorage.getItem('mode')==='weekday')
+      ? localStorage.getItem('mode')
+      : (isWeekend(new Date()) ? 'holiday' : 'weekday');
+    const state = {
+      showAll:false,
+      stopMode: 'auto', // 'auto' | 'manual'
+      manualStopId: 'lib-north',
+      nearest:{ id:'lib-north', dist: null },
+      userPos:null,
+      geo:{ phase:'idle', accuracy:null }, // idle|locating|ok|poor|fail|unsupported
+      dir:'forward',
+    };
+    const PREVIEW_LIMIT = 10;
 
     const els = {
       clock: $('#clock'), modeLabel: $('#mode-label'),
       btnW: $('#btn-week'), btnH: $('#btn-holi'),
       listUl: $('#ul'), listTitle: $('#list-title'),
       toggleAll: $('#toggle-all'),
-      nextBox: $('#next'), nextTime: $('#next-time'), nextHint: $('#next-hint')
+      nextBox: $('#next'), nextTime: $('#next-time'), nextHint: $('#next-hint'),
+      stopName: $('#stop-name'), stopSub: $('#stop-sub'),
+      stopSelect: $('#stop-select'), btnRelocate: $('#btn-relocate'), btnToggleMap: $('#btn-toggle-map'), dirText: $('#dir-text'), btnDirToggle: $('#btn-dir-toggle'), mapCard: document.getElementById('map-card'),
     };
 
     function currentList(){ return mode==='weekday' ? WEEKDAY_TIMES : HOLIDAY_TIMES }
 
-    // === 规则实现 ===
-    // 今天还有车 -> 仅返回今天剩余的前 limit 班（不足不补）
-    // 今天没车 -> 返回明日前 limit 班
-    function computeUpcoming(times, now, limit = PREVIEW_LIMIT){
-      const todayRemaining = times
-        .map(hm => ({ hm, date: parseHMToDate(hm, now) }))
-        .filter(x => x.date.getTime() >= now.getTime());
+    // ====== 兼容旧接口（自测仍使用） ======
+    function computeUpcoming(times, now, limit=PREVIEW_LIMIT){
+      const todayRem = times.map(hm=>({hm, date:parseHMToDate(hm, now)})).filter(x=>x.date>=now);
+      if(todayRem.length>0) return todayRem.slice(0,limit);
+      const tmr = new Date(now); tmr.setDate(now.getDate()+1);
+      return times.slice(0,limit).map(hm=>({hm, date:parseHMToDate(hm, tmr), isTomorrow:true}));
+    }
+    function applyStopOffset(upcoming, stop, now){
+      let off = 0;
+      if(stop && stop.id){ off = getOffsetFor(stop.id); }
+      else if(stop && stop.offset){ off = (mode==='weekday' ? stop.offset.weekday : stop.offset.holiday) || 0; }
+      return upcoming.map(x=>{ const arrive=addMin(x.date,off); const isTomorrowArrive = arrive.getDate()!==now.getDate()||arrive.getMonth()!==now.getMonth()||arrive.getFullYear()!==now.getFullYear(); return {srcHm:x.hm, srcDate:x.date, hm:fmtHM(arrive), date:arrive, isTomorrow:x.isTomorrow||isTomorrowArrive}; });
+    }
 
-      if (todayRemaining.length > 0) {
-        return todayRemaining.slice(0, limit);
-      }
+    function nearestStopFrom(lat,lng){ let best={stop:STOPS[0], dist:Infinity}; for(const s of STOPS){ const d=haversine(lat,lng,s.lat,s.lng); if(d<best.dist) best={stop:s,dist:d}; } return best; }
+    function currentStop(){ return state.stopMode==='manual' ? (STOPS.find(s=>s.id===state.manualStopId)||STOPS[0]) : (STOPS.find(s=>s.id===state.nearest.id)||STOPS[0]); }
 
-      const tmr = new Date(now);
-      tmr.setDate(now.getDate() + 1);
-      return times.slice(0, limit).map(hm => ({
-        hm, date: parseHMToDate(hm, tmr), isTomorrow: true
-      }));
+    function renderStopUI(){
+      const stop=currentStop();
+      els.stopName.textContent=stop.name;
+      els.stopSub.textContent = geoHint();
+      els.stopSelect.value = state.stopMode==='manual'? stop.id : 'auto';
+      highlightStopOnMap(stop.id);
+    }
+
+    // ====== 到站序算法 ======
+    function dayStart(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+    function nextDay(d){ const x=dayStart(d); x.setDate(x.getDate()+1); return x; }
+    function buildDeparturesForDate(times, date){ return times.map(hm=>({ hm, dep: parseHMToDate(hm, date) })); }
+    function computeNextArrivals(now, stop, times, limit=PREVIEW_LIMIT){
+      const off = getOffsetFor(stop.id);
+      const windowStart = new Date(now.getTime() - off*60000);
+      const today = dayStart(now); const yesterday = new Date(today); yesterday.setDate(today.getDate()-1); const tomorrow=new Date(today); tomorrow.setDate(today.getDate()+1);
+      const deps = [ ...buildDeparturesForDate(times, yesterday), ...buildDeparturesForDate(times, today), ...buildDeparturesForDate(times, tomorrow) ];
+      const arrs = deps.filter(x=> x.dep >= windowStart)
+        .map(x=>{ const arr=addMin(x.dep, off); return { depHm:x.hm, depDate:x.dep, arrHm:fmtHM(arr), arrDate:arr }; })
+        .filter(x=> x.arrDate >= now)
+        .sort((a,b)=> a.arrDate - b.arrDate)
+        .slice(0, limit)
+        .map(x=>({ srcHm:x.depHm, srcDate:x.depDate, hm:x.arrHm, date:x.arrDate, isTomorrow: dayStart(x.arrDate).getTime() > dayStart(now).getTime() }));
+      return arrs;
+    }
+    function computeArrivalsForDay(day, stop, times){
+      const off=getOffsetFor(stop.id); const ds=dayStart(day), nd=nextDay(day); const y=new Date(ds); y.setDate(ds.getDate()-1);
+      const deps=[...buildDeparturesForDate(times,y), ...buildDeparturesForDate(times,ds)];
+      return deps.map(x=>{ const arr=addMin(x.dep,off); return { srcHm:x.hm, srcDate:x.dep, hm:fmtHM(arr), date:arr, isTomorrow: dayStart(arr).getTime()>ds.getTime() }; })
+        .filter(x=> x.date>=ds && x.date<nd)
+        .sort((a,b)=> a.date-b.date);
     }
 
     function renderList(now){
-      const list = currentList();
-      const upcoming = computeUpcoming(list, now, PREVIEW_LIMIT);
+      const times = currentList();
+      const stop = currentStop();
 
-      // 未勾选显示全部 -> 只看 upcoming；勾选 -> 当天全部时刻（不含明天）
-      const toShow = state.showAll
-        ? list.map(hm=>({hm,date:parseHMToDate(hm, now)}))
-        : upcoming;
+      // 今天所有到站（含跨昨夜发车）且尚未到站
+      const todayAll = computeArrivalsForDay(now, stop, times).filter(x => x.date >= now);
+      // 明天所有到站（用于今天无车时）
+      const tmrDay = nextDay(now);
+      const tmrAll = computeArrivalsForDay(tmrDay, stop, times).map(x => ({...x, isTomorrow:true}));
 
-      // next 卡片
-      const nxt = upcoming[0];
-      if(nxt){
-        els.nextBox.hidden=false;
-        els.nextTime.textContent = nxt.hm;
-        if(nxt.isTomorrow){
-          els.nextHint.textContent = '今天已无车，将显示明日班次';
+      let toShow, nxt;
+      if(state.showAll){
+        toShow = computeArrivalsForDay(now, stop, times);
+        nxt = todayAll[0] || tmrAll[0] || null;
+      }else{
+        if(todayAll.length){
+          toShow = todayAll.slice(0, PREVIEW_LIMIT);
+          nxt = toShow[0];
         }else{
-          els.nextHint.innerHTML = `还有 <strong class="kbd">${diffMin(nxt.date, now)}</strong> 分钟发车`;
+          toShow = tmrAll.slice(0, PREVIEW_LIMIT);
+          nxt = toShow[0] || null;
         }
       }
 
-      if (state.showAll) {
-        els.listTitle.textContent = '全部班次';
-      } else if (upcoming[0]?.isTomorrow) {
-        els.listTitle.textContent = `明日前 ${PREVIEW_LIMIT} 班`;
-      } else {
-        els.listTitle.textContent = `今天剩余班次`;
+      if(nxt){
+        els.nextBox.hidden = false;
+        // 到站时间
+        els.nextTime.textContent = nxt.hm;
+        const offMin = getOffsetFor(stop.id); // 发车->到站用时（固定偏移）
+        els.nextHint.innerHTML = `发车时刻：<strong class="kbd">${nxt.srcHm}</strong>，预计 <strong class="kbd">${offMin}</strong> 分钟后 <strong class="kbd">${nxt.hm}${nxt.isTomorrow?'（明日）':''}</strong> 到达 <strong>${stop.name}</strong>`;
+      }else{
+        els.nextBox.hidden = true;
       }
 
-      // 渲染
+      // 标题
+      els.listTitle.textContent = state.showAll ? '全部班次' : '可乘坐班次';
+
+      // 列表
       els.listUl.innerHTML = '';
-      toShow.forEach(({hm,date,isTomorrow})=>{
-        const li = document.createElement('li');
-        li.className = 'li';
-        const isPast = !isTomorrow && date.getTime()<now.getTime();
-        const isNext = (!isTomorrow && hm === (upcoming[0]?.hm||'')) || (isTomorrow && upcoming[0]?.isTomorrow && hm===upcoming[0].hm);
+      const nextKey = nxt ? (nxt.hm+'|'+nxt.srcHm+'|'+(+nxt.date)) : '';
+      toShow.forEach(({hm,date,isTomorrow,srcHm})=>{
+        const li=document.createElement('li'); li.className='li';
+        const isPast = date < now && !isTomorrow;
+        const isNext = (hm+'|'+srcHm+'|'+(+date))===nextKey && !isTomorrow;
         if(isPast) li.classList.add('past');
         if(isNext) li.classList.add('next');
-        li.innerHTML = `<div class="hm">${hm}</div>`+
-                       `<div class="hint">${isTomorrow? '明日' : (isPast? '已发车' : `还有 ${diffMin(date, now)} 分钟`)}</div>`;
+        const hint = `预计 ${hm}${isTomorrow ? '（明日）' : ''} 到达 ${stop.name}`;
+        li.innerHTML = `<div class="hm">${srcHm}</div><div class="hint">${hint}</div>`;
         els.listUl.appendChild(li);
       });
     }
 
-    function syncModeUI(){
-      els.modeLabel.textContent = mode==='weekday' ? '工作日' : '节假日';
-      els.btnW.classList.toggle('active', mode==='weekday');
-      els.btnH.classList.toggle('active', mode==='holiday');
+    function syncModeUI(){ els.modeLabel.textContent = mode==='weekday' ? '工作日' : '节假日'; els.btnW.classList.toggle('active', mode==='weekday'); els.btnH.classList.toggle('active', mode==='holiday'); }
+
+    function syncDirUI(){ if(!els.dirText) return; els.dirText.textContent = state.dir==='forward' ? '图书馆北→东北门' : '东北门→图书馆北'; }
+
+    function tick(){ const now=new Date(); els.clock.textContent=`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`; syncDirUI(); renderStopUI(); renderList(now); }
+
+    // ====== Leaflet 动态加载（回退） ======
+    function leafletReady(){ return typeof L !== 'undefined' && L && typeof L.map === 'function'; }
+    function loadLeaflet(cb){
+      if(leafletReady()){ cb && cb(); return; }
+      // 注入回退CDN（cdnjs）
+      if(!document.getElementById('leaflet-css-fallback')){
+        const link=document.createElement('link'); link.id='leaflet-css-fallback'; link.rel='stylesheet'; link.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css'; document.head.appendChild(link);
+      }
+      if(!document.getElementById('leaflet-js-fallback')){
+        const sc=document.createElement('script'); sc.id='leaflet-js-fallback'; sc.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js'; sc.defer=true; sc.onload=()=>cb&&cb(); sc.onerror=()=>{ if(els.btnToggleMap) els.btnToggleMap.textContent='地图不可用'; }; document.head.appendChild(sc);
+      }
     }
 
-    function tick(){
-      const now = new Date();
-      els.clock.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-      renderList(now);
+    // ====== 地图：Leaflet + 自定义标记 ======
+    let map, stopLayer, userLayer, stopMarkers={}, userMarker=null, accuracyCircle=null, mapFitted=false, mapInitialized=false, mapVisible=false;
+
+    function initMap(){
+      if(!leafletReady()) return;
+      map = L.map('map', { zoomControl:true });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+      stopLayer = L.layerGroup().addTo(map);
+      userLayer = L.layerGroup().addTo(map);
+      buildStopMarkers();
+      fitMapToAll();
     }
 
-    // 事件
-    els.btnW.addEventListener('click',()=>{ mode='weekday'; syncModeUI(); tick(); })
-    els.btnH.addEventListener('click',()=>{ mode='holiday'; syncModeUI(); tick(); })
-    els.toggleAll.addEventListener('input', (e)=>{ state.showAll = e.target.checked; tick(); })
+    function stopDivIcon(name, selected){
+      return L.divIcon({
+        className: 'stop-divicon',
+        html: `<div class="stop-pin ${selected? 'is-selected':''}"><span class="dot"></span><span class="label"><span class="b">${name}</span>${selected? '<span class="badge">已选站点</span>':''}</span></div>`,
+        iconSize: [0,0], iconAnchor: [8,8]
+      });
+    }
+    function meDivIcon(){
+      return L.divIcon({ className:'me-divicon', html:`<div class="me-pin"><span class="pulse"></span><span class="label">当前位置</span></div>`, iconSize:[0,0], iconAnchor:[10,10] });
+    }
 
-    // init
-    syncModeUI();
-    tick();
-    setInterval(tick, 1000);
+    function buildStopMarkers(){
+      if(!leafletReady()) return;
+      stopLayer.clearLayers(); stopMarkers={};
+      for(const s of STOPS){
+        const selected = (currentStop().id===s.id);
+        const marker = L.marker([s.lat, s.lng], { icon: stopDivIcon(s.name, selected) }).addTo(stopLayer);
+        marker.on('click', ()=>{ state.stopMode='manual'; state.manualStopId=s.id; els.stopSelect.value=s.id; updateStopMarkerIcons(); tick(); });
+        stopMarkers[s.id]=marker;
+      }
+    }
+
+    function updateStopMarkerIcons(){ if(!leafletReady()) return; for(const s of STOPS){ const m=stopMarkers[s.id]; if(!m) continue; const selected = (currentStop().id===s.id); m.setIcon(stopDivIcon(s.name, selected)); } }
+    function highlightStopOnMap(){ updateStopMarkerIcons(); }
+
+    function updateUserMarker(){
+      if(!leafletReady()||!state.userPos) return;
+      if(!map || !userLayer) return;
+      userLayer.clearLayers(); userMarker=null; accuracyCircle=null;
+      const {lat,lng,accuracy} = state.userPos;
+      userMarker = L.marker([lat,lng], { icon: meDivIcon() }).addTo(userLayer);
+      if(accuracy && isFinite(accuracy)) accuracyCircle = L.circle([lat,lng], { radius: accuracy, color:'#2563eb', weight: 1, fill: false, dashArray:'4,4' }).addTo(userLayer);
+    }
+
+    function fitMapToAll(){
+      if(!leafletReady() || !map) return;
+      const pts = STOPS.map(s=>[s.lat, s.lng]);
+      if(state.userPos) pts.push([state.userPos.lat, state.userPos.lng]);
+      if(pts.length===0) return;
+      const bounds=L.latLngBounds(pts);
+      map.fitBounds(bounds, { padding:[24,24], maxZoom:17 });
+    }
+
+    // ====== 显隐地图 ======
+    function setMapVisible(v){
+      mapVisible = v;
+      if(els.mapCard){ els.mapCard.style.display = v ? '' : 'none'; }
+      if(els.btnToggleMap){ els.btnToggleMap.textContent = v ? '收起地图' : '展开地图'; }
+      if(!v) return;
+      if(!leafletReady()){
+        loadLeaflet(()=>{ if(!mapInitialized){ initMap(); mapInitialized = true; } setTimeout(()=>{ if(map){ map.invalidateSize(); if(!mapFitted){ fitMapToAll(); mapFitted=true; } updateUserMarker(); updateStopMarkerIcons(); } },0); });
+        return;
+      }
+      if(!mapInitialized){ initMap(); mapInitialized = true; }
+      setTimeout(()=>{ if(map){ map.invalidateSize(); if(!mapFitted){ fitMapToAll(); mapFitted=true; } updateUserMarker(); updateStopMarkerIcons(); } },0);
+      localStorage.setItem('mapVisible', v ? '1' : '0');
+    }
+
+    // ====== 定位 ======
+    function locateOnce(){
+      if(!navigator.geolocation){
+        state.userPos=null; state.nearest={id:'lib-north', dist:null};
+        state.geo={phase:'unsupported', accuracy:null};
+        renderStopUI(); tick(); return;
+      }
+      state.geo={phase:'locating', accuracy:null};
+      renderStopUI();
+      navigator.geolocation.getCurrentPosition(
+        (pos)=>{
+          const {latitude, longitude, accuracy}=pos.coords;
+          state.userPos={lat:latitude, lng:longitude, accuracy};
+          const res=nearestStopFrom(latitude, longitude);
+          state.nearest={id:res.stop.id, dist:res.dist};
+          if(isFinite(accuracy)){
+            state.geo={phase: (accuracy>ACC_THRESH.poor?'poor':'ok'), accuracy};
+          }else{
+            state.geo={phase:'ok', accuracy:null};
+          }
+          updateUserMarker(); renderStopUI(); tick();
+        },
+        (err)=>{
+          state.userPos=null; state.nearest={id:'lib-north', dist:null};
+          state.geo={phase:'fail', accuracy:null};
+          renderStopUI(); tick();
+        },
+        {enableHighAccuracy:true, timeout:8000, maximumAge:0}
+      );
+    }
+
+    // ====== 事件 ======
+    els.btnW.addEventListener('click',()=>{ mode='weekday'; localStorage.setItem('mode','weekday'); syncModeUI(); tick(); })
+    els.btnH.addEventListener('click',()=>{ mode='holiday'; localStorage.setItem('mode','holiday'); syncModeUI(); tick(); })
+    els.toggleAll.addEventListener('input', (e)=>{ state.showAll=e.target.checked; tick(); })
+
+    if(els.btnDirToggle){
+      els.btnDirToggle.addEventListener('click', ()=>{
+        state.dir = (state.dir==='forward') ? 'backward' : 'forward';
+        syncDirUI();
+        tick();
+      });
+    }
+
+    function initStopSelect(){
+      const optAuto=document.createElement('option'); optAuto.value='auto'; optAuto.textContent='自动（最近）'; els.stopSelect.appendChild(optAuto);
+      for(const s of STOPS){ const o=document.createElement('option'); o.value=s.id; o.textContent=s.name; els.stopSelect.appendChild(o); }
+      els.stopSelect.value = state.stopMode==='manual' ? state.manualStopId : 'auto';
+    }
+    els.stopSelect.addEventListener('change', ()=>{
+      const v=els.stopSelect.value;
+      if(v==='auto'){ state.stopMode='auto'; renderStopUI(); locateOnce(); }
+      else{ state.stopMode='manual'; state.manualStopId=v; renderStopUI(); tick(); }
+    });
+    els.btnRelocate.addEventListener('click', ()=>{
+      mapFitted=false;
+      if(state.stopMode!=='auto'){
+        state.stopMode='auto';
+        els.stopSelect.value='auto';
+        renderStopUI();
+      }
+      locateOnce();
+    });
+    if(els.btnToggleMap){ els.btnToggleMap.addEventListener('click', ()=> setMapVisible(!mapVisible)); }
+
+    // ====== 简易测试（控制台） ======
+    (function selfTests(){
+      const base = new Date('2025-01-01T08:00:00');
+      const list = ["07:50","08:00","08:10"];
+      const upcoming = computeUpcoming(list, base, 3);
+      console.assert(upcoming[0].hm === '08:00', 'computeUpcoming should pick 08:00 at 08:00');
+      const stop = {offset:{weekday:3, holiday:3}}; // 3分钟偏移
+      const applied = applyStopOffset(upcoming, stop, base);
+      console.assert(applied[0].hm === '08:03', 'applyStopOffset should add 3 minutes');
+      const late = new Date('2025-01-01T23:30:00');
+      const lateUp = computeUpcoming(["23:00"], late, 1);
+      console.assert(lateUp[0].isTomorrow === true, 'after last bus, should mark tomorrow');
+
+      // geoHint tests (100m 阈值)
+      const backup = JSON.parse(JSON.stringify(state));
+      state.stopMode='auto'; state.nearest={id:'lib-north', dist:120};
+      state.geo={phase:'ok', accuracy:25};
+      console.assert(geoHint().includes('±25'), 'geoHint should show accuracy when ok');
+      state.geo={phase:'poor', accuracy:350};
+      console.assert(geoHint().includes('精度较低'), 'geoHint should warn on poor accuracy');
+      state.geo={phase:'ok', accuracy:80};
+      console.assert(!geoHint().includes('精度较低'), '80m should be ok');
+      state.geo={phase:'poor', accuracy:150};
+      console.assert(geoHint().includes('精度较低'), '150m should be poor');
+      state.geo={phase:'locating', accuracy:null};
+      console.assert(geoHint().startsWith('定位中'), 'locating state');
+      state.geo={phase:'unsupported', accuracy:null};
+      console.assert(geoHint().includes('不支持定位'), 'unsupported state');
+      state.geo={phase:'fail', accuracy:null};
+      console.assert(geoHint().includes('定位失败'), 'fail state');
+      state.stopMode='manual';
+      console.assert(geoHint()==='手动选择', 'geoHint manual');
+
+      // 点击“重新定位”应切回自动模式 + 失败时回退到起点
+      const backup2 = JSON.parse(JSON.stringify(state));
+      state.stopMode='manual'; state.manualStopId='wenke-n';
+      if(state.stopMode!=='auto'){ state.stopMode='auto'; }
+      state.userPos=null; state.nearest={id:'lib-north', dist:null}; state.geo={phase:'fail', accuracy:null};
+      console.assert(currentStop().id==='lib-north', 'relocate=>auto & fail => fallback lib-north');
+      Object.assign(state, backup2);
+
+      // 方向偏移 tests
+      state.dir='forward';
+      let arr = applyStopOffset([{hm:'08:00', date:new Date('2025-01-01T08:00:00')}], STOPS.find(s=>s.id==='ne-gate'), new Date('2025-01-01T08:00:00'));
+      console.assert(arr[0].hm==='08:13','forward: ne-gate at 13');
+      state.dir='backward';
+      arr = applyStopOffset([{hm:'08:00', date:new Date('2025-01-01T08:00:00')}], STOPS.find(s=>s.id==='lib-north'), new Date('2025-01-01T08:00:00'));
+      console.assert(arr[0].hm==='08:27','backward: lib-north at 27');
+      arr = applyStopOffset([{hm:'08:00', date:new Date('2025-01-01T08:00:00')}], STOPS.find(s=>s.id==='north-gate'), new Date('2025-01-01T08:00:00'));
+      console.assert(arr[0].hm==='08:15','backward: north-gate at 15');
+
+      // Dir UI sync tests
+      state.dir='forward'; syncDirUI(); console.assert(els.dirText.textContent.includes('图书馆北→东北门'),'dir ui forward text');
+      state.dir='backward'; syncDirUI(); console.assert(els.dirText.textContent.includes('东北门→图书馆北'),'dir ui backward text');
+
+      // extra tests
+      console.assert(formatMeters(999)==='999 m', 'formatMeters under 1000m');
+      console.assert(formatMeters(1200)==='1.20 km', 'formatMeters over 1000m');
+      const here = STOPS.find(s=>s.id==='juyuan');
+      const near = nearestStopFrom(here.lat, here.lng);
+      console.assert(near.stop.id==='juyuan', 'nearestStopFrom should return itself for exact coords');
+
+      Object.assign(state, backup);
+      // 新增：到站序算法自测
+      state.dir='forward';
+      let stopF = STOPS.find(s=>s.id==='juyuan');
+      let nowA = new Date('2025-01-01T17:28:00');
+      let timesA = ['17:25','17:30'];
+      let upA = computeNextArrivals(nowA, stopF, timesA, 1);
+      console.assert(upA[0].srcHm==='17:25' && upA[0].hm==='17:29', 'arrival-driven: pick 17:25 -> 17:29');
+      // 跨日：昨晚 23:50 发车，回程 27 分钟，到站 00:17
+      state.dir='backward';
+      let stopB = STOPS.find(s=>s.id==='lib-north');
+      let nowB = new Date('2025-01-02T00:05:00');
+      let timesB = ['23:50','08:00'];
+      let upB = computeNextArrivals(nowB, stopB, timesB, 1);
+      console.assert(upB[0].srcHm==='23:50' && upB[0].hm==='00:17', 'arrival-driven: cross day 23:50 -> 00:17');
+
+      // 新增：展示策略测试（今天优先）
+      const today = new Date('2025-01-01T20:59:00');
+      state.dir='forward';
+      let arrToday = computeArrivalsForDay(today, STOPS.find(s=>s.id==='ne-gate'), WEEKDAY_TIMES).filter(x=>x.date>=today);
+      console.assert(arrToday.length>0, 'today still has arrivals before fallback to tomorrow');
+      const afterLast = new Date('2025-01-01T23:59:00');
+      let arrAfter = computeArrivalsForDay(afterLast, STOPS.find(s=>s.id==='ne-gate'), WEEKDAY_TIMES).filter(x=>x.date>=afterLast);
+      console.assert(arrAfter.length===0, 'after last arrival, todayAll should be empty -> will use tomorrow');
+
+      console.log('[自测] 通过：computeUpcoming/applyStopOffset/geoHint/nearest/dir-ui/arrival-driven/display-policy');
+    })();
+
+    // ====== init ======
+    (function init(){
+      syncModeUI();
+      initStopSelect();
+      const saved = localStorage.getItem('mapVisible')==='1';
+      setMapVisible(!!saved);
+      if(state.stopMode==='auto'){ locateOnce(); }
+      tick();
+      setInterval(tick, 1000);
+    })();
   </script>
 </body>
 </html>
